@@ -3,20 +3,15 @@ window.onload = () => {
 }
 
 async function init() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: false,
-    audio: true
-  })
   const peer = createPeer()
-  stream.getTracks().forEach((track) => peer.addTrack(track, stream))
-
+  //peer.addTransceiver("video", { direction: "recvonly" })
+  peer.addTransceiver("audio", { direction: "recvonly" })
   document.getElementById("my-button").onclick = () => {
     peer.close()
-    stream.clone()
-    document.getElementById("my-button").innerText = "Start Speaking"
+    document.getElementById("my-button").innerText = "Start Listening"
     document.getElementById("my-button").onclick = init
   }
-  document.getElementById("my-button").innerText = "Stop Speaking"
+  document.getElementById("my-button").innerText = "Stop Listening"
 }
 
 function createPeer() {
@@ -27,6 +22,7 @@ function createPeer() {
       }
     ]
   })
+  peer.ontrack = handleTrackEvent
   peer.onnegotiationneeded = () => handleNegotiationNeededEvent(peer)
 
   return peer
@@ -39,7 +35,11 @@ async function handleNegotiationNeededEvent(peer) {
     sdp: peer.localDescription
   }
 
-  const { data } = await axios.post("/broadcast", payload)
+  const { data } = await axios.post("/consumer", payload)
   const desc = new RTCSessionDescription(data.sdp)
   peer.setRemoteDescription(desc).catch((e) => console.log(e))
+}
+
+function handleTrackEvent(e) {
+  document.getElementById("audio").srcObject = e.streams[0]
 }
